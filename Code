@@ -1,0 +1,75 @@
+#include <PubSubClient.h>
+#include <ESP8266WiFi.h>
+#include "DHT.h"        // including the library of DHT11 temperature and humidity sensor
+#define DHTTYPE DHT11   // DHT 11
+
+#define dht_dpin D6
+DHT dht(dht_dpin, DHTTYPE); 
+
+char data[80]; 
+
+const char* ssid = "Ghita";
+const char* password =  "placinta28";
+const char* mqttServer = "mqtt.beia-telemetrie.ro";
+const int mqttPort = 1883;
+const char* mqttUser = "";
+const char* mqttPassword = "";
+const char* topic = "training/ESP/stroe-denisa";
+
+
+WiFiClient wclient;
+PubSubClient client(wclient);
+
+void setup() {
+   Serial.begin(9600);
+  dht.begin();
+  WiFi.begin(ssid, password);
+  //dht.begin();
+  
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.println("Connecting to WiFi..");
+  }
+  Serial.println("Connected to the WiFi network");
+ 
+  client.setServer(mqttServer, mqttPort);
+  //client.setCallback(callback);
+ 
+  while (!client.connected()) {
+    Serial.println("Connecting to MQTT...");
+ 
+    if (client.connect("ESP8266Client", mqttUser, mqttPassword )) 
+    {
+ 
+      Serial.println("connected");  
+ 
+    } 
+    else {
+ 
+      Serial.print("failed with state ");
+      Serial.print(client.state());
+      delay(2000);
+ 
+    }
+  }
+
+  
+}
+
+
+void loop() {
+  // put your main code here, to run repeatedly:
+
+    float h = dht.readHumidity();
+    float t = dht.readTemperature();         
+  
+  client.loop();
+  
+       String X= "{\"TEMP\":" + String(t)  + ", \"HUMID\":" + String(h)+ "}";
+       X.toCharArray(data,(X.length()+1));
+       
+      client.publish("training/ESP/stroe-denisa", data);  //{"TEMP":24,"HUMID":60}
+
+}
+      //Serial.println(String(topic) +  " => off");
+     delay(2000);
